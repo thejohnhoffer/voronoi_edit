@@ -53,7 +53,7 @@ function updateBuffer(gl, state) {
 
 function bindBuffer(gl, key, bufferSource, ND) {
   // Make and define bind a buffer
-	var size = values.length;
+	var size = bufferSource.values.length;
   var buffer = gl.createBuffer();
 	var bufferState = {
 		'key': key,
@@ -73,8 +73,8 @@ function bindBuffer(gl, key, bufferSource, ND) {
 function draw(gl, offset, pyramid) {
 	// Get instanced array extension
   var ext = gl.getExtension('ANGLE_instanced_arrays');
-  // Set canvas to clear color
-  gl.clear(gl.COLOR_BUFFER_BIT);
+  // Clear color and depth buffer
+	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
 	// Apply each offset to a pyramid instance
 	ext.vertexAttribDivisorANGLE(offset.key, 1);
@@ -82,15 +82,31 @@ function draw(gl, offset, pyramid) {
 }
 
 function setup(gl, glKeys) {
-  // Count vertices and dimensions 
-	const NCopy = 3;
+  // dimensions
   const ND = 3;
-	var nPoints = 1;
-  // Specify the clear color
+  // Specify split points
+  var splits = {
+		45: [
+			[
+				0.0,  0.0,  0.0,
+				0.4,  0.0,  0.0,
+				0.8,  0.0,  0.0,
+			],
+			[
+				0.0,  0.0,  0.0,
+				0.6,  0.2,  0.0,
+				1.0,  0.2,  0.0,
+			],
+		],
+	};
+  // Set the clear color and enable the depth test
   gl.clearColor(0.0, 0.0, 0.0, 1.0);
+  gl.enable(gl.DEPTH_TEST);
+
   // Make the Pyramid and initial offsets
 	var pyramidSource = getPyramid(gl);
-	var offsetSource = getOffset(gl, NCopy);
+	var offsetSource = getOffset(gl, splits);
+	//var segmentSource = getSegment(gl, splits);
   // Make the Pyramid and Offset buffers
 	var pyramid = bindBuffer(gl, glKeys.pyramid, pyramidSource, ND);
 	var offset = bindBuffer(gl, glKeys.offset, offsetSource, ND);
