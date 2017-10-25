@@ -3,16 +3,23 @@
 const VSHADER_SOURCE = `
 attribute vec4 a_offset;
 attribute vec4 a_pyramid;
+attribute vec2 a_relabel;
+
+varying vec2 v_relabel;
 
 void main() {
+  v_relabel = a_relabel;
   gl_Position = a_pyramid + a_offset;
 }
 `;
 
 // Fragment shader program
 const FSHADER_SOURCE = `
+precision highp float;
+varying vec2 v_relabel;
+
 void main() {
-  gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+  gl_FragColor = vec4(1.0, v_relabel.y, 0.0, 1.0);
 }
 `;
 
@@ -36,7 +43,7 @@ function parseKeypoints(split_map, ND) {
   return [keypoints, segments];
 }
 
-function getPyramid(gl) {
+function getPyramid(gl, ND) {
 	// Make the pyramid geometry
   var values = new Float32Array([
 		0.0,  0.0,  0.0,
@@ -47,6 +54,7 @@ function getPyramid(gl) {
 		1.0,  0.0, -1.0,
 	]);
 	return {
+    ND: ND,
 		values: values,
 		usage: gl.STATIC_DRAW,		
 	};
@@ -58,10 +66,13 @@ function updateBuffer(gl, state) {
   gl.bufferData(gl.ARRAY_BUFFER, state.values, gl.STATIC_DRAW);
 }
 
-function bindBuffer(gl, key, bufferSource, ND) {
+function bindBuffer(gl, key, bufferSource) {
   // Make and define bind a buffer
 	var size = bufferSource.values.length;
   var buffer = gl.createBuffer();
+  // Get the number of dimensions
+  var ND = bufferSource.ND;
+  // Describe buffer
 	var bufferState = {
 		'key': key,
 		'buffer': buffer,
@@ -77,7 +88,7 @@ function bindBuffer(gl, key, bufferSource, ND) {
   return bufferState;
 }
 
-function draw(gl, offset, pyramid) {
+function draw(gl, offset, relabel, pyramid) {
 	// Get instanced array extension
   var ext = gl.getExtension('ANGLE_instanced_arrays');
   // Clear color and depth buffer
@@ -85,6 +96,7 @@ function draw(gl, offset, pyramid) {
 
 	// Apply each offset to a pyramid instance
 	ext.vertexAttribDivisorANGLE(offset.key, 1);
+	ext.vertexAttribDivisorANGLE(relabel.key, 1);
 	ext.drawArraysInstancedANGLE(gl.TRIANGLE_FAN, 0, pyramid.count, offset.count);
 }
 
@@ -116,22 +128,25 @@ function setup(gl, glKeys) {
   gl.enable(gl.DEPTH_TEST);
 
   // Make the Pyramid structure
-	var pyramidSource = getPyramid(gl);
+	var pyramidSource = getPyramid(gl, ND);
   // Keypoint offset parameters
 	var offsetSource = {
 		values: new Float32Array(offsets),
-		usage: gl.DYNAMIC_DRAW,	
+		usage: gl.DYNAMIC_DRAW,
+    ND: ND,
 	};
   // ID relabel parameters
-	var segmentSource = {
+	var relabelSource = {
 		values: new Float32Array(relabels),
 		usage: gl.DYNAMIC_DRAW,	
+    ND: 2,
 	};
-  // Make the Pyramid and Offset buffers
+  // Bind all attribute buffers
 	var pyramid = bindBuffer(gl, glKeys.pyramid, pyramidSource, ND);
-	var offset = bindBuffer(gl, glKeys.offset, offsetSource, ND);
+	var relabel = bindBuffer(gl, glKeys.relabel, relabelSource);
+	var offset = bindBuffer(gl, glKeys.offset, offsetSource);
   // Actually draw
-	draw(gl, offset, pyramid);
+	draw(gl, offset, relabel, pyramid);
 }
 
 function main() {
@@ -146,6 +161,7 @@ function main() {
 		// Prepare to draw
 		var glKeys = {
 			'pyramid': gl.getAttribLocation(program, 'a_pyramid'),
+			'relabel': gl.getAttribLocation(program, 'a_relabel'),
 			'offset': gl.getAttribLocation(program, 'a_offset'),
 		}
 		setup(gl, glKeys);
