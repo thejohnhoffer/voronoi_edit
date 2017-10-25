@@ -16,17 +16,24 @@ void main() {
 }
 `;
 
-function getOffset(gl, points) {
-	// Return dummy offsets
-  var values = new Float32Array([
-		0.0,  0.0, -1.0,
-    0.0,  1.0, -1.1,
-    0.0, -1.0, -1.8,
-	]);
-	return {
-		values: values,
-		usage: gl.DYNAMIC_DRAW,	
-	};
+function parseKeypoints(split_map, ND) {
+  var keypoints = [];
+  var segments = [];
+  // Read new labels per segment
+  split_map.forEach( (labels, seg) => {
+    // Read keypoints per label
+    labels.forEach( (points, label) => {
+      // Ensure keypoints all have same dimensions
+      var n_points = Math.floor(points.length / ND);
+      var ND_points = points.slice(0, n_points * ND);
+      keypoints.push(...ND_points);
+      // Add segment label for each keypoint
+      for (var i = 0; i < n_points; i++) {
+        segments.push(parseInt(seg, 10), label);
+      }
+    });
+  });
+  return [keypoints, segments];
 }
 
 function getPyramid(gl) {
@@ -85,8 +92,8 @@ function setup(gl, glKeys) {
   // dimensions
   const ND = 3;
   // Specify split points
-  var splits = {
-		45: [
+  var splits = [
+		['45', [
 			[
 				0.0,  0.0,  0.0,
 				0.4,  0.0,  0.0,
@@ -97,16 +104,29 @@ function setup(gl, glKeys) {
 				0.6,  0.2,  0.0,
 				1.0,  0.2,  0.0,
 			],
-		],
-	};
+		]],
+  ];
+  // <string, number[][]>
+  var split_map = new Map(splits); 
+  // Keypoint offset and relabeled IDs
+  var [offsets, relabels] = parseKeypoints(split_map, ND);
+
   // Set the clear color and enable the depth test
   gl.clearColor(0.0, 0.0, 0.0, 1.0);
   gl.enable(gl.DEPTH_TEST);
 
-  // Make the Pyramid and initial offsets
+  // Make the Pyramid structure
 	var pyramidSource = getPyramid(gl);
-	var offsetSource = getOffset(gl, splits);
-	//var segmentSource = getSegment(gl, splits);
+  // Keypoint offset parameters
+	var offsetSource = {
+		values: new Float32Array(offsets),
+		usage: gl.DYNAMIC_DRAW,	
+	};
+  // ID relabel parameters
+	var segmentSource = {
+		values: new Float32Array(relabels),
+		usage: gl.DYNAMIC_DRAW,	
+	};
   // Make the Pyramid and Offset buffers
 	var pyramid = bindBuffer(gl, glKeys.pyramid, pyramidSource, ND);
 	var offset = bindBuffer(gl, glKeys.offset, offsetSource, ND);
