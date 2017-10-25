@@ -44,14 +44,15 @@ function parseKeypoints(split_map, ND) {
 }
 
 function getPyramid(gl, ND) {
+  var K = 1.0;
   // Make the pyramid geometry
   var values = new Float32Array([
     0.0,  0.0,  0.0,
-    1.0,  0.0, -1.0,
-    0.0, -1.0, -1.0,
-   -1.0,  0.0, -1.0,
-    0.0,  1.0, -1.0,
-    1.0,  0.0, -1.0,
+      K,  0.0,    K,
+    0.0,   -K,    K,
+     -K,  0.0,    K,
+    0.0,    K,    K,
+      K,  0.0,    K,
   ]);
   return {
     ND: ND,
@@ -108,13 +109,9 @@ function setup(gl, glKeys) {
     ['45', [
       [
         0.0,  0.0,  0.0,
-        0.4,  0.0,  0.0,
-        0.8,  0.0,  0.0,
       ],
       [
-        0.0,  0.0,  0.0,
-        0.6,  0.2,  0.0,
-        1.0,  0.2,  0.0,
+        1.0,  0.0,  0.0,
       ],
     ]],
   ];
