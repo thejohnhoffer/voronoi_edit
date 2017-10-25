@@ -1,15 +1,15 @@
 // HelloPoint1.js (c) 2012 matsuda
 // Vertex shader program
 const VSHADER_SOURCE = `
-attribute vec4 a_offset;
-attribute vec4 a_pyramid;
+attribute vec3 a_offset;
+attribute vec3 a_pyramid;
 attribute vec2 a_relabel;
 
 varying vec2 v_relabel;
 
 void main() {
   v_relabel = a_relabel;
-  gl_Position = a_pyramid + a_offset;
+  gl_Position = vec4(a_pyramid + a_offset, 1.0);
 }
 `;
 
@@ -44,15 +44,14 @@ function parseKeypoints(split_map, ND) {
 }
 
 function getPyramid(gl, ND) {
-  var K = 1.0;
   // Make the pyramid geometry
   var values = new Float32Array([
-    0.0,  0.0,  0.0,
-      K,  0.0,    K,
-    0.0,   -K,    K,
-     -K,  0.0,    K,
-    0.0,    K,    K,
-      K,  0.0,    K,
+    0.0,  0.0, -1.0,
+    2.0,  0.0,  1.0,
+    0.0, -2.0,  1.0,
+   -2.0,  0.0,  1.0,
+    0.0,  2.0,  1.0,
+    2.0,  0.0,  1.0,
   ]);
   return {
     ND: ND,
@@ -104,6 +103,8 @@ function draw(gl, offset, relabel, pyramid) {
 function setup(gl, glKeys) {
   // dimensions
   const ND = 3;
+  // Specify plane
+  // TODO
   // Specify split points
   var splits = [
     ['45', [
@@ -112,6 +113,8 @@ function setup(gl, glKeys) {
       ],
       [
         1.0,  0.0,  0.0,
+        0.0,  1.0,  0.0,
+        0.5,  0.5,  0.0,
       ],
     ]],
   ];
